@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NovaPen — Write Without Limits</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Bebas Neue', 'sans-serif'],
+            mono:    ['Space Mono', 'monospace'],
+            sans:    ['Inter', 'sans-serif'],
+          },
+          colors: {
+            black:   '#080808',
+            carbon:  '#111111',
+            iron:    '#1a1a1a',
+            steel:   '#252525',
+            border:  '#2a2a2a',
+            muted:   '#555555',
+            subtle:  '#888888',
+            light:   '#cccccc',
+            white:   '#f5f5f5',
+            red:     '#e01c1c',
+            redlt:   '#ff3333',
+            reddark: '#8a0000',
+            reddim:  'rgba(224,28,28,0.12)',
+          },
+          keyframes: {
+            fadeUp:  { '0%': { opacity:'0', transform:'translateY(24px)' }, '100%': { opacity:'1', transform:'translateY(0)' } },
+            scanline:{ '0%': { transform:'translateY(-100%)' }, '100%': { transform:'translateY(100vh)' } },
+            glitch:  { '0%,100%': { clipPath:'inset(0 0 98% 0)' }, '25%': { clipPath:'inset(30% 0 50% 0)' }, '50%': { clipPath:'inset(60% 0 20% 0)' }, '75%': { clipPath:'inset(10% 0 80% 0)' } },
+            blink:   { '0%,100%': { opacity:'1' }, '50%': { opacity:'0' } },
+            pulse:   { '0%,100%': { opacity:'1', transform:'scale(1)' }, '50%': { opacity:'0.6', transform:'scale(0.95)' } },
+            flicker: { '0%,19%,21%,23%,25%,54%,56%,100%': { opacity:'1' }, '20%,24%,55%': { opacity:'0.4' } },
+            shimmer: { '0%': { backgroundPosition:'-200% center' }, '100%': { backgroundPosition:'200% center' } },
+          },
+          animation: {
+            'fu1': 'fadeUp 0.6s ease both',
+            'fu2': 'fadeUp 0.6s 0.1s ease both',
+            'fu3': 'fadeUp 0.6s 0.2s ease both',
+            'fu4': 'fadeUp 0.6s 0.3s ease both',
+            'scanline': 'scanline 6s linear infinite',
+            'blink': 'blink 1s step-end infinite',
+            'flicker': 'flicker 4s linear infinite',
+            'shimmer': 'shimmer 3s linear infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red: #e01c1c;
+      --redlt: #ff3333;
+      --reddark: #8a0000;
+      --black: #080808;
+      --carbon: #111111;
+      --iron: #1a1a1a;
+      --steel: #252525;
+      --border: #2a2a2a;
+      --muted: #555555;
+      --subtle: #888888;
+      --light: #cccccc;
+      --white: #f5f5f5;
+    }
+
+    html { color-scheme: dark; }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+      pointer-events: none;
+    }
+
+    /* Noise texture */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 9998;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      pointer-events: none; opacity: 0.5;
+    }
+
+    /* Diagonal grid bg */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(224,28,28,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(224,28,28,0.06) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    .reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* Red glitch text */
+    .glitch {
+      position: relative;
+      color: var(--white);
+    }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+    .glitch::before {
+      color: var(--red);
+      animation: glitch 3s infinite linear alternate-reverse;
+      clip-path: inset(0 0 98% 0);
+      left: 2px;
+    }
+    .glitch::after {
+      color: #00ffff;
+      animation: glitch 2s 1s infinite linear alternate-reverse;
+      clip-path: inset(50% 0 30% 0);
+      left: -2px;
+      opacity: 0.3;
+    }
+
+    /* Gradient text */
+    .red-grad {
+      background: linear-gradient(90deg, var(--redlt) 0%, var(--red) 50%, #ff6b35 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+
+    /* CTA buttons */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--red); color: var(--white);
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 0.9rem 2rem; border-radius: 2px; text-decoration: none;
+      position: relative; overflow: hidden;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      border: 1px solid var(--redlt);
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
+    }
+    .btn-primary:hover {
+      background: var(--redlt); transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(224,28,28,0.5), 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border: 1px solid var(--border); color: var(--subtle);
+      font-family: 'Space Mono', monospace; font-size: 0.7rem;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 0.9rem 2rem; border-radius: 2px; text-decoration: none;
+      transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .btn-ghost:hover {
+      border-color: var(--red); color: var(--redlt);
+      box-shadow: 0 0 16px rgba(224,28,28,0.15);
+    }
+
+    /* Feature card */
+    .feat-card {
+      background: var(--carbon);
+      border: 1px solid var(--border);
+      border-radius: 2px; padding: 2rem;
+      position: relative; overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+    .feat-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--red), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feat-card:hover { border-color: rgba(224,28,28,0.4); transform: translateY(-3px); box-shadow: 0 0 40px rgba(224,28,28,0.08); }
+    .feat-card:hover::after { opacity: 1; }
+
+    /* Corner decoration */
+    .corner-tl::before {
+      content: ''; position: absolute; top: -1px; left: -1px;
+      width: 16px; height: 16px;
+      border-top: 2px solid var(--red); border-left: 2px solid var(--red);
+    }
+    .corner-br::after {
+      content: ''; position: absolute; bottom: -1px; right: -1px;
+      width: 16px; height: 16px;
+      border-bottom: 2px solid var(--red); border-right: 2px solid var(--red);
+    }
+
+    /* Pricing card */
+    .price-card {
+      background: var(--carbon); border: 1px solid var(--border);
+      border-radius: 2px; padding: 2rem;
+      transition: transform 0.25s, box-shadow 0.25s;
+      position: relative;
+    }
+    .price-card.hot {
+      border-color: var(--red);
+      box-shadow: 0 0 40px rgba(224,28,28,0.12), inset 0 0 40px rgba(224,28,28,0.03);
+    }
+    .price-card:hover { transform: translateY(-4px); }
+
+    /* Checkmark */
+    .check { color: var(--red); margin-right: 0.5rem; }
+    .cross  { color: var(--muted); margin-right: 0.5rem; }
+
+    /* Testimonial */
+    .testi { background: var(--carbon); border: 1px solid var(--border); border-radius: 2px; padding: 1.75rem; }
+
+    /* FAQ */
+    .faq-item summary {
+      list-style: none; cursor: pointer;
+      font-family: 'Space Mono', monospace; font-size: 0.82rem;
+      color: var(--light); padding: 1.2rem 0;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.02em;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item[open] summary { color: var(--redlt); border-color: rgba(224,28,28,0.3); }
+    .faq-item[open] .faq-icon { transform: rotate(45deg); color: var(--red); }
+    .faq-icon { transition: transform 0.2s; font-size: 1.2rem; color: var(--muted); flex-shrink: 0; }
+    .faq-body { padding: 1rem 0 1.25rem; color: var(--subtle); font-size: 0.85rem; line-height: 1.8; }
+
+    /* Status badge */
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pulse 1.5s ease-in-out infinite; display: inline-block; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 0 0 rgba(224,28,28,0.4)} 50%{opacity:1;transform:scale(1);box-shadow:0 0 0 6px rgba(224,28,28,0)} }
+
+    /* Mono tag */
+    .tag {
+      font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      color: var(--red); background: var(--reddim);
+      border: 1px solid rgba(224,28,28,0.2);
+      padding: 0.15rem 0.55rem; border-radius: 2px; letter-spacing: 0.06em;
+    }
+
+    /* Nav */
+    .nav-active { color: var(--redlt) !important; }
+    #mob-nav { display: none; }
+    #mob-nav.open { display: flex; }
+    #hamburger span { transition: transform 0.2s ease, opacity 0.2s ease; }
+
+    /* Section label */
+    .sec-label {
+      font-family: 'Space Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--red);
+      display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    }
+    .sec-label::before { content: '//'; opacity: 0.5; }
+
+    /* HUD mockup */
+    .hud-line { height: 1px; background: linear-gradient(90deg, var(--red), transparent); }
+    .hud-bar { height: 4px; background: var(--iron); border-radius: 1px; overflow: hidden; }
+    .hud-fill { height: 100%; background: linear-gradient(90deg, var(--reddark), var(--red)); border-radius: 1px; }
+  </style>
+</head>
+
+<body class="bg-black text-white font-sans leading-relaxed overflow-x-hidden" style="color:#f5f5f5">
+
+  <!-- ── NAV ── -->
+  <nav id="main-nav" class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 sm:px-10 lg:px-16 py-4 bg-black/90 backdrop-blur-sm border-b border-border transition-all duration-300">
+    <!-- Logo -->
+    <a href="#" class="font-display text-redlt text-2xl tracking-widest flex items-center gap-2">
+      <span class="status-dot"></span> NOVAPEN
+    </a>
+
+    <!-- Desktop links -->
+    <ul class="hidden md:flex items-center gap-8 list-none">
+      <li><a href="#features" class="nav-lnk font-mono text-xs tracking-widest uppercase text-subtle hover:text-redlt transition-colors duration-150">Features</a></li>
+      <li><a href="#how"      class="nav-lnk font-mono text-xs tracking-widest uppercase text-subtle hover:text-redlt transition-colors duration-150">Protocol</a></li>
+      <li><a href="#pricing"  class="nav-lnk font-mono text-xs tracking-widest uppercase text-subtle hover:text-redlt transition-colors duration-150">Pricing</a></li>
+      <li><a href="#faq"      class="nav-lnk font-mono text-xs tracking-widest uppercase text-subtle hover:text-redlt transition-colors duration-150">FAQ</a></li>
+    </ul>
+
+    <div class="hidden md:flex items-center gap-4">
+      <a href="#" class="font-mono text-xs tracking-widest uppercase text-subtle hover:text-light transition-colors">Login</a>
+      <a href="#pricing" class="btn-primary py-2.5 px-5 text-xs">Deploy Free →</a>
+    </div>
+
+    <!-- Hamburger -->
+    <button id="hamburger" class="md:hidden flex flex-col gap-1.5 p-2 focus:outline-none">
+      <span class="block w-5 h-0.5 bg-subtle origin-center"></span>
+      <span class="block w-5 h-0.5 bg-subtle"></span>
+      <span class="block w-5 h-0.5 bg-subtle origin-center"></span>
+    </button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mob-nav" class="fixed top-[57px] left-0 right-0 z-40 flex-col bg-black/95 backdrop-blur-md border-b border-border px-6 py-6 gap-4">
+    <a href="#features" class="mob-lnk font-mono text-sm tracking-widest uppercase text-subtle hover:text-redlt transition-colors py-1">Features</a>
+    <a href="#how"      class="mob-lnk font-mono text-sm tracking-widest uppercase text-subtle hover:text-redlt transition-colors py-1">Protocol</a>
+    <a href="#pricing"  class="mob-lnk font-mono text-sm tracking-widest uppercase text-subtle hover:text-redlt transition-colors py-1">Pricing</a>
+    <a href="#faq"      class="mob-lnk font-mono text-sm tracking-widest uppercase text-subtle hover:text-redlt transition-colors py-1">FAQ</a>
+    <hr class="border-border"/>
+    <a href="#pricing" class="btn-primary w-fit mt-1 text-xs">Deploy Free →</a>
+  </div>
+
+
+  <!-- ── HERO ── -->
+  <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-5 sm:px-10 pt-28 pb-20 overflow-hidden">
+    <div class="grid-bg absolute inset-0 pointer-events-none opacity-60"></div>
+
+    <!-- Red glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] pointer-events-none" style="background:radial-gradient(ellipse, rgba(224,28,28,0.12) 0%, transparent 70%);"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto">
+
+      <!-- Status bar -->
+      <div class="animate-fu1 inline-flex items-center gap-3 font-mono text-xs tracking-widest uppercase border border-red/30 bg-reddim px-4 py-2 rounded-sm mb-10">
+        <span class="status-dot"></span>
+        <span style="color:#e01c1c">SYSTEM ONLINE</span>
+        <span class="text-muted">—</span>
+        <span class="text-subtle">Public Beta v2.4.1</span>
+      </div>
+
+      <!-- Main headline -->
+      <h1 class="animate-fu2 font-display leading-none mb-6 tracking-wider" style="font-size:clamp(3.5rem,10vw,9rem); line-height:0.95">
+        <span class="block text-white">WRITE</span>
+        <span class="block red-grad">WITHOUT</span>
+        <span class="block text-white">LIMITS</span>
+      </h1>
+
+      <p class="animate-fu3 text-subtle text-sm sm:text-base max-w-xl mx-auto mb-10 leading-relaxed font-mono">
+        // AI-powered writing tool for developers, creators &amp; teams who ship fast and write smart.
+      </p>
+
+      <div class="animate-fu4 flex flex-wrap gap-4 justify-center">
+        <a href="#pricing" class="btn-primary">Deploy Free →</a>
+        <a href="#how"     class="btn-ghost">View Protocol</a>
+      </div>
+
+      <div class="animate-fu4 mt-8 font-mono text-xs text-muted tracking-widest">
+        NO CARD REQUIRED &nbsp;/&nbsp; 14-DAY TRIAL &nbsp;/&nbsp; CANCEL ANYTIME
+      </div>
+    </div>
+
+    <!-- HUD Mockup -->
+    <div class="relative z-10 mt-16 w-full max-w-4xl mx-auto">
+      <div class="relative bg-carbon border border-border rounded-sm overflow-hidden" style="box-shadow:0 0 0 1px rgba(224,28,28,0.2), 0 0 80px rgba(224,28,28,0.1), 0 40px 80px rgba(0,0,0,0.7)">
+        <!-- Title bar -->
+        <div class="flex items-center gap-3 px-4 py-2.5 bg-iron border-b border-border">
+          <span class="w-3 h-3 rounded-full bg-[#ff5f57]"></span>
+          <span class="w-3 h-3 rounded-full bg-[#febc2e]"></span>
+          <span class="w-3 h-3 rounded-full bg-[#28c840]"></span>
+          <span class="flex-1 text-center font-mono text-xs text-muted">NOVAPEN — TERMINAL EDITOR v2.4</span>
+          <span class="tag">LIVE</span>
+        </div>
+        <!-- Editor content -->
+        <div class="grid grid-cols-1 sm:grid-cols-5">
+          <!-- Sidebar -->
+          <div class="hidden sm:block sm:col-span-1 border-r border-border p-4 bg-black/40">
+            <div class="font-mono text-xs text-muted mb-3 tracking-widest uppercase">// FILES</div>
+            <div class="space-y-1.5">
+              <div class="font-mono text-xs text-redlt bg-reddim px-2 py-1.5 rounded-sm flex items-center gap-2">
+                <span style="color:#e01c1c">▶</span> mission.md
+              </div>
+              <div class="font-mono text-xs text-muted px-2 py-1.5 flex items-center gap-2">
+                <span>·</span> strategy.md
+              </div>
+              <div class="font-mono text-xs text-muted px-2 py-1.5 flex items-center gap-2">
+                <span>·</span> deploy.md
+              </div>
+            </div>
+
+            <div class="font-mono text-xs text-muted mb-3 mt-6 tracking-widest uppercase">// STATS</div>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between font-mono text-xs text-muted mb-1">
+                  <span>WORDS</span><span style="color:#e01c1c">847</span>
+                </div>
+                <div class="hud-bar"><div class="hud-fill" style="width:65%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between font-mono text-xs text-muted mb-1">
+                  <span>SEO</span><span style="color:#e01c1c">91%</span>
+                </div>
+                <div class="hud-bar"><div class="hud-fill" style="width:91%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between font-mono text-xs text-muted mb-1">
+                  <span>SCORE</span><span style="color:#e01c1c">A+</span>
+                </div>
+                <div class="hud-bar"><div class="hud-fill" style="width:95%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main editor -->
+          <div class="col-span-1 sm:col-span-4 p-5 sm:p-6 min-h-56">
+            <div class="hud-line mb-4"></div>
+            <div class="font-display text-white text-2xl mb-4 tracking-widest">MISSION BRIEFING</div>
+            <div class="space-y-2 mb-5">
+              <div class="h-2 bg-iron rounded-sm w-full"></div>
+              <div class="h-2 bg-iron rounded-sm w-5/6"></div>
+              <div class="h-2 bg-iron rounded-sm w-4/6"></div>
+            </div>
+            <!-- AI suggestion -->
+            <div class="border border-red/30 bg-reddim rounded-sm px-4 py-3 flex items-start gap-3">
+              <span style="color:#e01c1c; font-size:1.1rem;">⬡</span>
+              <div>
+                <div class="font-mono text-xs tracking-widest uppercase mb-2" style="color:#e01c1c">// AI OVERRIDE ENGAGED</div>
+                <div class="h-2 bg-red/20 rounded-sm w-56 mb-2"></div>
+                <div class="h-2 bg-red/20 rounded-sm w-40"></div>
+              </div>
+            </div>
+            <div class="hud-line mt-5"></div>
+            <!-- Cursor blink -->
+            <div class="mt-3 font-mono text-xs text-subtle flex items-center gap-1">
+              <span>&gt;_</span>
+              <span class="animate-blink" style="color:#e01c1c">█</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── SOCIAL PROOF ── -->
+  <div class="py-8 border-y border-border bg-carbon/60">
+    <div class="max-w-5xl mx-auto px-5 sm:px-10">
+      <p class="font-mono text-xs text-muted tracking-widest uppercase text-center mb-6">// DEPLOYED AT</p>
+      <div class="flex flex-wrap justify-center items-center gap-8 sm:gap-14 opacity-30">
+        <span class="font-display text-xl text-light tracking-widest">ACME</span>
+        <span class="font-display text-xl text-light tracking-widest">PRISMATIC</span>
+        <span class="font-display text-xl text-light tracking-widest">STACKFLOW</span>
+        <span class="font-display text-xl text-light tracking-widest">VELOXA</span>
+        <span class="font-display text-xl text-light tracking-widest">LUNARIS</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── FEATURES ── -->
+  <section id="features" class="px-5 sm:px-10 lg:px-16 py-20 sm:py-28">
+    <div class="max-w-5xl mx-auto">
+      <div class="mb-14 reveal">
+        <div class="sec-label">Features</div>
+        <h2 class="font-display leading-none tracking-widest" style="font-size:clamp(2.5rem,5vw,5rem)">
+          YOUR WEAPONS.<br/><span class="red-grad">LOADED.</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_01</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">AI AUTOCOMPLETE</h3>
+          <p class="text-subtle text-sm leading-relaxed">Context-aware suggestions that sync with your voice. Write without breaking stride.</p>
+        </div>
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_02</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">INSTANT REWRITE</h3>
+          <p class="text-subtle text-sm leading-relaxed">Highlight any block. Obliterate it. Rebuild sharper, harder, faster in one command.</p>
+        </div>
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_03</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">SMART TEMPLATES</h3>
+          <p class="text-subtle text-sm leading-relaxed">50+ battle-tested templates for READMEs, blogs, pitches, and product copy. Pre-loaded.</p>
+        </div>
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_04</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">TEAM OPS</h3>
+          <p class="text-subtle text-sm leading-relaxed">Real-time co-editing, comments, version history. Your squad, one command centre.</p>
+        </div>
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_05</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">SEO TARGETING</h3>
+          <p class="text-subtle text-sm leading-relaxed">Live readability scores, keyword density alerts, and SEO intel — embedded in the editor.</p>
+        </div>
+
+        <div class="feat-card reveal corner-tl corner-br">
+          <div class="tag mb-4">MODULE_06</div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">DEPLOY ANYWHERE</h3>
+          <p class="text-subtle text-sm leading-relaxed">Export MD, HTML, or PDF. Direct integrations with GitHub, Notion, and WordPress.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── HOW IT WORKS ── -->
+  <section id="how" class="px-5 sm:px-10 lg:px-16 py-20 sm:py-28 bg-carbon border-y border-border">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-14 reveal">
+        <div class="sec-label">Protocol</div>
+        <h2 class="font-display leading-none tracking-widest" style="font-size:clamp(2.5rem,5vw,5rem)">
+          THREE-STEP<br/><span class="red-grad">EXECUTION.</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6">
+
+        <div class="reveal">
+          <div class="font-display text-6xl tracking-widest mb-4" style="color:rgba(224,28,28,0.2)">01</div>
+          <div class="hud-line mb-5" style="background:linear-gradient(90deg, #e01c1c, transparent)"></div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">SELECT TARGET</h3>
+          <p class="text-subtle text-sm leading-relaxed">Pick from 50+ templates or initiate a blank mission. AI guides your first move.</p>
+        </div>
+
+        <div class="reveal" style="transition-delay:0.1s">
+          <div class="font-display text-6xl tracking-widest mb-4" style="color:rgba(224,28,28,0.2)">02</div>
+          <div class="hud-line mb-5" style="background:linear-gradient(90deg, #e01c1c, transparent)"></div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">ENGAGE AI</h3>
+          <p class="text-subtle text-sm leading-relaxed">NovaPen co-writes in real-time — completions, rewrites, and tactical suggestions inline.</p>
+        </div>
+
+        <div class="reveal" style="transition-delay:0.2s">
+          <div class="font-display text-6xl tracking-widest mb-4" style="color:rgba(224,28,28,0.2)">03</div>
+          <div class="hud-line mb-5" style="background:linear-gradient(90deg, #e01c1c, transparent)"></div>
+          <h3 class="font-display text-2xl tracking-widest text-white mb-3">DEPLOY</h3>
+          <p class="text-subtle text-sm leading-relaxed">One-click to your platform. Markdown, HTML, PDF or direct pipeline integrations.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── TESTIMONIALS ── -->
+  <section class="px-5 sm:px-10 lg:px-16 py-20 sm:py-28">
+    <div class="max-w-5xl mx-auto">
+      <div class="mb-14 reveal">
+        <div class="sec-label">Testimonials</div>
+        <h2 class="font-display leading-none tracking-widest" style="font-size:clamp(2.5rem,5vw,5rem)">
+          FIELD<br/><span class="red-grad">REPORTS.</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="testi reveal corner-tl corner-br">
+          <div class="font-mono text-xs text-red mb-4 tracking-widest">★ ★ ★ ★ ★</div>
+          <p class="text-light text-sm leading-relaxed mb-5">"NovaPen cut my content time in half. The AI isn't just fluff — it's actually sharp. This is the weapon I've been waiting for."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-sm bg-iron border border-border flex items-center justify-center font-display text-redlt">A</div>
+            <div>
+              <div class="text-sm font-medium text-white">Ada Mensah</div>
+              <div class="font-mono text-xs text-muted">Tech Blogger</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testi reveal corner-tl corner-br">
+          <div class="font-mono text-xs text-red mb-4 tracking-widest">★ ★ ★ ★ ★</div>
+          <p class="text-light text-sm leading-relaxed mb-5">"Entire dev team switched for technical docs. The Markdown export and GitHub pipeline alone are worth it. Zero friction."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-sm bg-iron border border-border flex items-center justify-center font-display text-redlt">K</div>
+            <div>
+              <div class="text-sm font-medium text-white">Kolade James</div>
+              <div class="font-mono text-xs text-muted">Senior Developer</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testi reveal corner-tl corner-br">
+          <div class="font-mono text-xs text-red mb-4 tracking-widest">★ ★ ★ ★ ★</div>
+          <p class="text-light text-sm leading-relaxed mb-5">"Managing three brand voices was chaos. NovaPen's workspace keeps it contained. The rewrite feature has saved every deadline."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-sm bg-iron border border-border flex items-center justify-center font-display text-redlt">Z</div>
+            <div>
+              <div class="text-sm font-medium text-white">Zara Osei</div>
+              <div class="font-mono text-xs text-muted">Content Strategist</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── PRICING ── -->
+  <section id="pricing" class="px-5 sm:px-10 lg:px-16 py-20 sm:py-28 bg-carbon border-y border-border">
+    <div class="max-w-5xl mx-auto">
+      <div class="mb-14 reveal">
+        <div class="sec-label">Pricing</div>
+        <h2 class="font-display leading-none tracking-widest" style="font-size:clamp(2.5rem,5vw,5rem)">
+          CHOOSE YOUR<br/><span class="red-grad">LOADOUT.</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+
+        <!-- Free -->
+        <div class="price-card reveal flex flex-col">
+          <div class="font-mono text-xs tracking-widest uppercase text-muted mb-2">// RECRUIT</div>
+          <div class="font-display text-5xl text-white tracking-widest mb-1">$0</div>
+          <div class="font-mono text-xs text-muted mb-6">FOREVER FREE</div>
+          <ul class="space-y-3 text-sm text-subtle flex-1 mb-8 font-mono text-xs leading-relaxed">
+            <li><span class="check">✓</span>5 documents / month</li>
+            <li><span class="check">✓</span>10 AI suggestions / day</li>
+            <li><span class="check">✓</span>Basic templates</li>
+            <li><span class="cross">✗</span>Team workspace</li>
+            <li><span class="cross">✗</span>Priority support</li>
+          </ul>
+          <a href="#" class="btn-ghost text-center justify-center text-xs">ENLIST FREE</a>
+        </div>
+
+        <!-- Pro -->
+        <div class="price-card hot reveal flex flex-col">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 font-mono text-xs tracking-widest uppercase text-black bg-red px-3 py-1 rounded-sm whitespace-nowrap">// RECOMMENDED</div>
+          <div class="font-mono text-xs tracking-widest uppercase mb-2" style="color:#e01c1c">// OPERATIVE</div>
+          <div class="font-display text-5xl text-white tracking-widest mb-1">$12</div>
+          <div class="font-mono text-xs text-muted mb-6">PER MONTH — BILLED ANNUALLY</div>
+          <ul class="space-y-3 text-sm text-subtle flex-1 mb-8 font-mono text-xs leading-relaxed">
+            <li><span class="check">✓</span>Unlimited documents</li>
+            <li><span class="check">✓</span>Unlimited AI suggestions</li>
+            <li><span class="check">✓</span>All templates + custom</li>
+            <li><span class="check">✓</span>SEO targeting module</li>
+            <li><span class="check">✓</span>Priority support</li>
+          </ul>
+          <a href="#" class="btn-primary justify-center text-xs">DEPLOY NOW →</a>
+        </div>
+
+        <!-- Team -->
+        <div class="price-card reveal flex flex-col">
+          <div class="font-mono text-xs tracking-widest uppercase text-muted mb-2">// COMMAND</div>
+          <div class="font-display text-5xl text-white tracking-widest mb-1">$39</div>
+          <div class="font-mono text-xs text-muted mb-6">UP TO 10 OPERATORS</div>
+          <ul class="space-y-3 text-sm text-subtle flex-1 mb-8 font-mono text-xs leading-relaxed">
+            <li><span class="check">✓</span>Everything in Operative</li>
+            <li><span class="check">✓</span>Team command centre</li>
+            <li><span class="check">✓</span>Real-time co-editing</li>
+            <li><span class="check">✓</span>Admin dashboard</li>
+            <li><span class="check">✓</span>Dedicated intel support</li>
+          </ul>
+          <a href="#" class="btn-ghost text-center justify-center text-xs">CONTACT HQ</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── FAQ ── -->
+  <section id="faq" class="px-5 sm:px-10 lg:px-16 py-20 sm:py-28">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-12 reveal">
+        <div class="sec-label">FAQ</div>
+        <h2 class="font-display leading-none tracking-widest" style="font-size:clamp(2.5rem,5vw,5rem)">
+          INTEL<br/><span class="red-grad">BRIEFING.</span>
+        </h2>
+      </div>
+
+      <div class="reveal space-y-0">
+        <details class="faq-item">
+          <summary>Is there a free trial for the Operative plan? <span class="faq-icon">+</span></summary>
+          <div class="faq-body">Affirmative. Every Operative account initialises with a 14-day free trial. No card required. You only get billed if you choose to continue after trial completion.</div>
+        </details>
+        <details class="faq-item">
+          <summary>Does NovaPen run offline? <span class="faq-icon">+</span></summary>
+          <div class="faq-body">AI modules require a live connection. However, all drafts are cached locally — you can keep writing offline and the system auto-syncs when back online.</div>
+        </details>
+        <details class="faq-item">
+          <summary>What export formats are supported? <span class="faq-icon">+</span></summary>
+          <div class="faq-body">Markdown (.md), HTML, plain text, and PDF. Operative and Command users get direct pipeline integrations with GitHub, Notion, and WordPress.</div>
+        </details>
+        <details class="faq-item">
+          <summary>How does team collaboration work? <span class="faq-icon">+</span></summary>
+          <div class="faq-body">Command tier unlocks a shared workspace: real-time co-editing, inline comments, and full version history for every document across all operators.</div>
+        </details>
+        <details class="faq-item">
+          <summary>Can I abort my subscription at any time? <span class="faq-icon">+</span></summary>
+          <div class="faq-body">Confirmed. Cancel from account settings at any point. Access remains active through end of billing cycle. All documents remain yours to export at any time.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── FINAL CTA ── -->
+  <section class="px-5 sm:px-10 lg:px-16 py-24 sm:py-32 bg-carbon border-t border-border text-center relative overflow-hidden">
+    <div class="absolute inset-0 grid-bg opacity-40 pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] pointer-events-none" style="background:radial-gradient(ellipse, rgba(224,28,28,0.15) 0%, transparent 70%);"></div>
+    <div class="relative z-10 max-w-3xl mx-auto reveal">
+      <div class="sec-label justify-center mb-6">Initiate</div>
+      <h2 class="font-display leading-none tracking-widest mb-8" style="font-size:clamp(2.5rem,7vw,7rem)">
+        YOUR MISSION<br/><span class="red-grad">AWAITS.</span>
+      </h2>
+      <p class="text-subtle text-base mb-10 font-mono text-xs tracking-wide leading-relaxed max-w-lg mx-auto">
+        // Join thousands of writers, developers, and teams deploying NovaPen to dominate their content game.
+      </p>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <a href="#pricing" class="btn-primary">Deploy Free →</a>
+        <a href="#features" class="btn-ghost">Explore Modules</a>
+      </div>
+      <p class="font-mono text-xs text-muted mt-6 tracking-widest">FREE TIER AVAILABLE &nbsp;/&nbsp; NO CARD NEEDED</p>
+    </div>
+  </section>
+
+
+  <!-- ── FOOTER ── -->
+  <footer class="px-5 sm:px-10 lg:px-16 py-8 border-t border-border">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+      <a href="#" class="font-display text-redlt text-2xl tracking-widest flex items-center gap-2">
+        <span class="status-dot"></span> NOVAPEN
+      </a>
+      <div class="flex flex-wrap gap-6 justify-center">
+        <a href="#features" class="font-mono text-xs text-muted hover:text-subtle tracking-widest uppercase transition-colors">Features</a>
+        <a href="#pricing"  class="font-mono text-xs text-muted hover:text-subtle tracking-widest uppercase transition-colors">Pricing</a>
+        <a href="#faq"      class="font-mono text-xs text-muted hover:text-subtle tracking-widest uppercase transition-colors">FAQ</a>
+        <a href="#"         class="font-mono text-xs text-muted hover:text-subtle tracking-widest uppercase transition-colors">Privacy</a>
+        <a href="#"         class="font-mono text-xs text-muted hover:text-subtle tracking-widest uppercase transition-colors">Terms</a>
+      </div>
+      <p class="font-mono text-xs text-muted tracking-widest">© 2025 NOVAPEN</p>
+    </div>
+  </footer>
+
+
+  <!-- ── JS ── -->
+  <script>
+    // Nav scroll style
+    const nav = document.getElementById('main-nav');
+    window.addEventListener('scroll', () => {
+      nav.style.borderBottomColor = window.scrollY > 40 ? 'rgba(224,28,28,0.2)' : '';
+    });
+
+    // Hamburger
+    const hamburger = document.getElementById('hamburger');
+    const mobNav    = document.getElementById('mob-nav');
+    const bars      = hamburger.querySelectorAll('span');
+    hamburger.addEventListener('click', () => {
+      const open = mobNav.classList.toggle('open');
+      bars[0].style.transform = open ? 'translateY(8px) rotate(45deg)' : '';
+      bars[1].style.opacity   = open ? '0' : '1';
+      bars[2].style.transform = open ? 'translateY(-8px) rotate(-45deg)' : '';
+    });
+    document.querySelectorAll('.mob-lnk').forEach(l => {
+      l.addEventListener('click', () => {
+        mobNav.classList.remove('open');
+        bars.forEach(b => { b.style.transform = ''; b.style.opacity = '1'; });
+      });
+    });
+
+    // Scroll reveal
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.07 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Active nav
+    const secs  = document.querySelectorAll('section[id]');
+    const nlnks = document.querySelectorAll('.nav-lnk');
+    window.addEventListener('scroll', () => {
+      let cur = '';
+      secs.forEach(s => { if (window.scrollY >= s.offsetTop - 140) cur = s.id; });
+      nlnks.forEach(a => {
+        a.style.color = a.getAttribute('href') === `#${cur}` ? '#ff3333' : '';
+      });
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', function(e) {
+        const t = document.querySelector(this.getAttribute('href'));
+        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+  </script>
+
+</body>
+</html>
