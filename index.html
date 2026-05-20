@@ -248,6 +248,14 @@
       padding: 0.15rem 0.55rem; border-radius: 2px; letter-spacing: 0.06em;
     }
 
+    /* Stat block */
+    .stat-block {
+      background: var(--carbon);
+      border: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+
     /* Nav */
     .nav-active { color: var(--redlt) !important; }
     #mob-nav { display: none; }
@@ -348,83 +356,23 @@
       </div>
     </div>
 
-    <!-- HUD Mockup -->
-    <div class="relative z-10 mt-16 w-full max-w-4xl mx-auto">
-      <div class="relative bg-carbon border border-border rounded-sm overflow-hidden" style="box-shadow:0 0 0 1px rgba(224,28,28,0.2), 0 0 80px rgba(224,28,28,0.1), 0 40px 80px rgba(0,0,0,0.7)">
-        <!-- Title bar -->
-        <div class="flex items-center gap-3 px-4 py-2.5 bg-iron border-b border-border">
-          <span class="w-3 h-3 rounded-full bg-[#ff5f57]"></span>
-          <span class="w-3 h-3 rounded-full bg-[#febc2e]"></span>
-          <span class="w-3 h-3 rounded-full bg-[#28c840]"></span>
-          <span class="flex-1 text-center font-mono text-xs text-muted">NOVAPEN — TERMINAL EDITOR v2.4</span>
-          <span class="tag">LIVE</span>
-        </div>
-        <!-- Editor content -->
-        <div class="grid grid-cols-1 sm:grid-cols-5">
-          <!-- Sidebar -->
-          <div class="hidden sm:block sm:col-span-1 border-r border-border p-4 bg-black/40">
-            <div class="font-mono text-xs text-muted mb-3 tracking-widest uppercase">// FILES</div>
-            <div class="space-y-1.5">
-              <div class="font-mono text-xs text-redlt bg-reddim px-2 py-1.5 rounded-sm flex items-center gap-2">
-                <span style="color:#e01c1c">▶</span> mission.md
-              </div>
-              <div class="font-mono text-xs text-muted px-2 py-1.5 flex items-center gap-2">
-                <span>·</span> strategy.md
-              </div>
-              <div class="font-mono text-xs text-muted px-2 py-1.5 flex items-center gap-2">
-                <span>·</span> deploy.md
-              </div>
-            </div>
-
-            <div class="font-mono text-xs text-muted mb-3 mt-6 tracking-widest uppercase">// STATS</div>
-            <div class="space-y-3">
-              <div>
-                <div class="flex justify-between font-mono text-xs text-muted mb-1">
-                  <span>WORDS</span><span style="color:#e01c1c">847</span>
-                </div>
-                <div class="hud-bar"><div class="hud-fill" style="width:65%"></div></div>
-              </div>
-              <div>
-                <div class="flex justify-between font-mono text-xs text-muted mb-1">
-                  <span>SEO</span><span style="color:#e01c1c">91%</span>
-                </div>
-                <div class="hud-bar"><div class="hud-fill" style="width:91%"></div></div>
-              </div>
-              <div>
-                <div class="flex justify-between font-mono text-xs text-muted mb-1">
-                  <span>SCORE</span><span style="color:#e01c1c">A+</span>
-                </div>
-                <div class="hud-bar"><div class="hud-fill" style="width:95%"></div></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Main editor -->
-          <div class="col-span-1 sm:col-span-4 p-5 sm:p-6 min-h-56">
-            <div class="hud-line mb-4"></div>
-            <div class="font-display text-white text-2xl mb-4 tracking-widest">MISSION BRIEFING</div>
-            <div class="space-y-2 mb-5">
-              <div class="h-2 bg-iron rounded-sm w-full"></div>
-              <div class="h-2 bg-iron rounded-sm w-5/6"></div>
-              <div class="h-2 bg-iron rounded-sm w-4/6"></div>
-            </div>
-            <!-- AI suggestion -->
-            <div class="border border-red/30 bg-reddim rounded-sm px-4 py-3 flex items-start gap-3">
-              <span style="color:#e01c1c; font-size:1.1rem;">⬡</span>
-              <div>
-                <div class="font-mono text-xs tracking-widest uppercase mb-2" style="color:#e01c1c">// AI OVERRIDE ENGAGED</div>
-                <div class="h-2 bg-red/20 rounded-sm w-56 mb-2"></div>
-                <div class="h-2 bg-red/20 rounded-sm w-40"></div>
-              </div>
-            </div>
-            <div class="hud-line mt-5"></div>
-            <!-- Cursor blink -->
-            <div class="mt-3 font-mono text-xs text-subtle flex items-center gap-1">
-              <span>&gt;_</span>
-              <span class="animate-blink" style="color:#e01c1c">█</span>
-            </div>
-          </div>
-        </div>
+    <!-- Stats strip -->
+    <div class="relative z-10 mt-16 w-full max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="stat-block">
+        <div class="font-display text-3xl sm:text-4xl font-black mb-1" style="color:#e01c1c">50+</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-muted">Templates</div>
+      </div>
+      <div class="stat-block">
+        <div class="font-display text-3xl sm:text-4xl font-black mb-1" style="color:#e01c1c">10x</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-muted">Faster Writing</div>
+      </div>
+      <div class="stat-block">
+        <div class="font-display text-3xl sm:text-4xl font-black mb-1" style="color:#e01c1c">3</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-muted">Export Formats</div>
+      </div>
+      <div class="stat-block">
+        <div class="font-display text-3xl sm:text-4xl font-black mb-1" style="color:#e01c1c">24/7</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-muted">AI Online</div>
       </div>
     </div>
   </section>
